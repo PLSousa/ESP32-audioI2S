@@ -3460,7 +3460,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
             }
         } // inner while
 
-        if(!pos){vTaskDelay(3); continue;}
+        if(!pos){vTaskDelay(5); continue;}
 
         if(m_f_Log) {log_i("httpResponseHeader: %s", rhl);}
 
@@ -3575,7 +3575,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
             char* c_icyname = (rhl + 9); // Get station name
             trim(c_icyname);
             if(strlen(c_icyname) > 0) {
-                if(!m_f_Log) AUDIO_INFO("icy-name: %s", c_icyname);
+                if(m_f_Log) AUDIO_INFO("icy-name: %s", c_icyname);
                 if(audio_showstation) audio_showstation(c_icyname);
             }
         }
@@ -3598,7 +3598,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         else if((startsWith(rhl, "transfer-encoding:"))){
             if(endsWith(rhl, "chunked") || endsWith(rhl, "Chunked") ) { // Station provides chunked transfer
                 m_f_chunked = true;
-                if(!m_f_Log) AUDIO_INFO("chunked data transfer");
+                AUDIO_INFO("chunked data transfer");
                 m_chunkcount = 0;                         // Expect chunkcount in DATA
             }
         }
@@ -3955,6 +3955,7 @@ int Audio::findNextSync(uint8_t* data, size_t len){
     }
     if(m_codec == CODEC_MP3) {
         nextSync = MP3FindSyncWord(data, len);
+        if(nextSync == -1) return len; // syncword not found, search next block
     }
     if(m_codec == CODEC_AAC) {
         nextSync = AACFindSyncWord(data, len);
@@ -4034,6 +4035,15 @@ int Audio::sendBytes(uint8_t* data, size_t len) {
         return 1;
     }
     if(ret < 0) { // Error, skip the frame...
+        // B5 backport v3.2.1: skip ID3 tag injected in MP3 chunked stream
+        if((m_codec == CODEC_MP3) && (m_f_chunked == true)) {
+            if(specialIndexOf(data, "ID3", 4) == 0) {
+                uint16_t id3Size = bigEndian(data + 6, 4, 7);
+                id3Size += 10;
+                AUDIO_INFO("ID3 tag found in chunked MP3, skip %i bytes", id3Size);
+                return id3Size;
+            }
+        }
         if(m_f_Log) if(m_codec == CODEC_M4A){log_i("begin not found"); return 1;}
         i2s_zero_dma_buffer((i2s_port_t)m_i2s_num);
         if(!getChannels() && (ret == -2)) {
