@@ -8,7 +8,7 @@ Starting with v3.0.0, the original library requires PSRAM and allocates a 704 KB
 
 The goal of this fork is to allow makers who own ESP32 boards without PSRAM to keep using them for simple audio projects — internet radio, audio notifications, basic streaming — without having to downgrade their Arduino IDE or their ESP32 board package. These boards are perfectly capable hardware for many practical use cases, and there is no good reason to abandon them just because the upstream library moved on.
 
-This fork applies 4 targeted patches to make v2.0.6 compile and run correctly with ESP32 board package v3.x and GCC 14, with no functional changes to the library behaviour. Compatibility has been validated with board package v3.3.7 and Arduino IDE 2.3.8. We will do our best to maintain this compatibility as new versions of the board package are released, but we cannot guarantee it indefinitely — if a future board package version introduces breaking changes that cannot be easily patched, this will be documented here.
+This fork applies 9 targeted patches to make v2.0.6 compile and run correctly with ESP32 board package v3.x and GCC 14, and to backport selected stability fixes from v3.2.1. Compatibility has been validated with board package v3.3.7 and Arduino IDE 2.3.8. We will do our best to maintain this compatibility as new versions of the board package are released, but we cannot guarantee it indefinitely — if a future board package version introduces breaking changes that cannot be easily patched, this will be documented here.
 
 ## Patches applied
 
@@ -19,6 +19,16 @@ Patch 2 — aac_decoder.cpp : changed int val to int32_t val in 5 functions (Unp
 Patch 3 — aac_decoder.cpp : fixed a cast incompatibility — (uint32_t*)last replaced by (unsigned int*)last to resolve a C++ name mangling conflict under GCC 14.
 
 Patch 4 — aac_decoder.cpp : corrected the DecodeHuffmanScalar function definition signature — uint32_t bitBuf replaced by unsigned int bitBuf to align declaration and definition and eliminate the linker error.
+
+Patch 5 — Audio_nopsram.cpp : changed vTaskDelay(3) to vTaskDelay(5) in parseHttpResponseHeader(). Backported from v3.2.1. Slightly longer yield when the HTTP response buffer is empty between header lines, reducing busy-wait on slow networks.
+
+Patch 6 — Audio_nopsram.cpp : fixed an inverted condition on the "chunked data transfer" log message. The original code used !m_f_Log, meaning the message was only printed when logging was disabled — the opposite of the intended behaviour. Backported from v3.2.1.
+
+Patch 7 — Audio_nopsram.cpp : fixed the same inverted !m_f_Log condition on the "icy-name" log message. Station names were only printed when logging was disabled. Backported from v3.2.1.
+
+Patch 8 — Audio_nopsram.cpp : in findNextSync(), when MP3FindSyncWord returns -1 (syncword not found in the current block), the function now returns len to consume the entire block and move on to the next one. Previously the -1 was propagated upward, which could cause the decoder to stall on the same corrupt data. Backported from v3.2.1.
+
+Patch 9 — Audio_nopsram.cpp : in sendBytes(), when a decode error occurs on a chunked MP3 stream, the code now checks whether the offending block starts with an ID3 tag header. Some radio stations inject ID3 metadata between MP3 frames in HLS chunked streams. The original code treated this as a decode error and retried indefinitely. The fix detects the ID3 tag, computes its size from the header, and skips it cleanly. Backported from v3.2.1.
 
 ## Header rename
 
