@@ -20,16 +20,6 @@ Patch 3 — aac_decoder.cpp : fixed a cast incompatibility — (uint32_t*)last r
 
 Patch 4 — aac_decoder.cpp : corrected the DecodeHuffmanScalar function definition signature — uint32_t bitBuf replaced by unsigned int bitBuf to align declaration and definition and eliminate the linker error.
 
-Patch 5 — Audio_nopsram.cpp : changed vTaskDelay(3) to vTaskDelay(5) in parseHttpResponseHeader(). Backported from v3.2.1. Slightly longer yield when the HTTP response buffer is empty between header lines, reducing busy-wait on slow networks.
-
-Patch 6 — Audio_nopsram.cpp : fixed an inverted condition on the "chunked data transfer" log message. The original code used !m_f_Log, meaning the message was only printed when logging was disabled — the opposite of the intended behaviour. Backported from v3.2.1.
-
-Patch 7 — Audio_nopsram.cpp : fixed the same inverted !m_f_Log condition on the "icy-name" log message. Station names were only printed when logging was disabled. Backported from v3.2.1.
-
-Patch 8 — Audio_nopsram.cpp : in findNextSync(), when MP3FindSyncWord returns -1 (syncword not found in the current block), the function now returns len to consume the entire block and move on to the next one. Previously the -1 was propagated upward, which could cause the decoder to stall on the same corrupt data. Backported from v3.2.1.
-
-Patch 9 — Audio_nopsram.cpp : in sendBytes(), when a decode error occurs on a chunked MP3 stream, the code now checks whether the offending block starts with an ID3 tag header. Some radio stations inject ID3 metadata between MP3 frames in HLS chunked streams. The original code treated this as a decode error and retried indefinitely. The fix detects the ID3 tag, computes its size from the header, and skips it cleanly. Backported from v3.2.1.
-
 ## Header rename
 
 To allow coexistence with other versions of ESP32-audioI2S in the same Arduino libraries folder, Audio.h and Audio.cpp have been renamed to Audio_nopsram.h and Audio_nopsram.cpp. All internal #include references have been updated accordingly. In your sketch, use #include "Audio_nopsram.h" instead of #include "Audio.h". This makes it possible to install this fork alongside the original library or its v3.x versions without any conflict.
@@ -59,6 +49,12 @@ MCU : ESP32 dev board (no PSRAM), 240 MHz. Amplifier : MAX98357A I2S Class-D mod
 ## No-PSRAM behaviour
 
 Unlike v3.x, ESP32-audioI2S v2.0.6 supports boards without PSRAM. When no PSRAM is detected it automatically falls back to a smaller internal SRAM buffer (approximately 6 KB input buffer) instead of the 704 KB PSRAM allocation that caused out-of-memory crashes on v3.x. To get reliable audio streaming with this small buffer, it is important to disable WiFi modem sleep (WiFi.setSleep(false)), set CPU frequency to 240 MHz for AAC decoding headroom, and allow a pre-fill phase after connecttohost() before the main loop takes over.
+
+## Codec support
+
+v2.0.6 includes decoders for MP3, AAC, AAC+ (HE-AAC), WAV, FLAC, and M4A. VORBIS and OPUS decoders were added in v3.x and are not available in this fork. The original library documents AAC+ on plain ESP32 as mono only, with full stereo (SBR, Parametric Stereo) requiring an ESP32-S3 or ESP32-P4.
+
+The limiting factor for no-PSRAM boards is not the codec itself but the input buffer size. Without PSRAM the buffer is approximately 6 KB, compared to 300 KB with PSRAM. This is sufficient for AAC and MP3 streams at typical internet radio bitrates (96–192 kbps). Higher bitrates or codecs with large frame sizes (FLAC in particular, with blocks up to 24 KB) may cause buffer underruns. Validated codecs on this fork are AAC and MP3. WAV has been tested and works. FLAC and M4A are present in the decoder but have not been tested on no-PSRAM hardware.
 
 ## Credits
 
