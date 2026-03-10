@@ -20,6 +20,18 @@ Patch 3 — aac_decoder.cpp : fixed a cast incompatibility — (uint32_t*)last r
 
 Patch 4 — aac_decoder.cpp : corrected the DecodeHuffmanScalar function definition signature — uint32_t bitBuf replaced by unsigned int bitBuf to align declaration and definition and eliminate the linker error.
 
+The following patches (5–9) are stability fixes backported from v3.2.1 into Audio_nopsram.cpp.
+
+Patch 5 — parseHttpResponseHeader() : increased the vTaskDelay from 3 to 5 ticks to give the TCP stack slightly more time during HTTP header parsing, reducing the risk of incomplete reads on slow connections.
+
+Patch 6 — parseHttpResponseHeader() : fixed an inverted log condition that suppressed the "chunked data transfer" info message. The message now appears correctly when logging is enabled.
+
+Patch 7 — parseHttpResponseHeader() : fixed the same inverted log condition for the "icy-name" metadata field.
+
+Patch 8 — findNextSync() MP3 : added a return statement when no MP3 sync word is found within the search window, preventing an infinite loop that could occur with malformed or unexpected stream data.
+
+Patch 9 — sendBytes() : added handling for ID3 tags injected mid-stream in chunked MP3 transfers, skipping them cleanly instead of passing them to the decoder and causing a decode error.
+
 ## Header rename
 
 To allow coexistence with other versions of ESP32-audioI2S in the same Arduino libraries folder, Audio.h and Audio.cpp have been renamed to Audio_nopsram.h and Audio_nopsram.cpp. All internal #include references have been updated accordingly. In your sketch, use #include "Audio_nopsram.h" instead of #include "Audio.h". This makes it possible to install this fork alongside the original library or its v3.x versions without any conflict.
@@ -38,9 +50,15 @@ Board : ESP32 Dev Module. PSRAM : Disabled. Partition Scheme : Huge APP (3MB No 
 
 ## Validated examples
 
-WiFi_Radio_ESP32dev_noPSRAM : a complete internet radio sketch for ESP32 dev board with MAX98357A I2S amplifier. Streams AAC and MP3 stations over WiFi. Includes a TCP probe mechanism to ensure the lwIP stack is fully ready before connecting to the stream, a WiFi watchdog for automatic reconnection, and a pre-fill buffer phase to prevent dropouts on startup. Tested and validated on ESP32 dev board without PSRAM, with ESP32 board package v3.3.7 and GCC 14.
+All examples have been tested and validated on hardware (ESP32 dev board without PSRAM, MAX98357A I2S amplifier, ESP32 board package v3.3.7, GCC 14). Only verified examples are published in this repository.
 
-Additional examples for no-PSRAM ESP32 boards will be added progressively as they are tested and validated on hardware. Only verified examples are published in this repository.
+WiFi_Radio_ESP32dev_noPSRAM : a complete internet radio sketch. Streams AAC and MP3 stations over WiFi. Includes a TCP probe mechanism to ensure the lwIP stack is fully ready before connecting to the stream, a WiFi watchdog for automatic reconnection, and a pre-fill buffer phase to prevent dropouts on startup.
+
+AudioPlayer_SD_ESP32dev_noPSRAM : plays WAV (16-bit PCM) and MP3 files from a microSD card via SPI. No WiFi required. The audio file is specified by name in the sketch and played once at boot. Includes SD wiring and ffmpeg conversion instructions for WAV files that are not 16-bit PCM.
+
+FlashAudioPlayer_ESP32dev_noPSRAM : plays an audio file stored in the ESP32 internal flash using LittleFS or SPIFFS. No SD card, no WiFi required. The file is uploaded to the data/ folder via the arduino-littlefs-upload plugin. A #define switches between LittleFS (default) and SPIFFS. The example ships with a short WAV sound effect in the data/ folder so it can be used immediately after cloning. Useful for audio notifications, sound effects, and any application where a small audio clip needs to play without external hardware.
+
+GoogleTTS_ESP32dev_noPSRAM : demonstrates Google Text-to-Speech via connecttospeech(). Sends a text string to the Google TTS API over HTTPS and plays the MP3 response directly through the I2S amplifier. This example also illustrates the API difference between v2.0.6 and v3.x : the upstream v3.x example uses Audio::msg_t and audio_info_callback, which do not exist in v2.0.6. This fork uses the v2.x weak callback functions (audio_info, audio_eof_speech) instead. The example text is a line from Molière's L'Avare (1668), public domain.
 
 ## Hardware tested
 
