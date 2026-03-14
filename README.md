@@ -60,6 +60,8 @@ FlashAudioPlayer_ESP32dev_noPSRAM : plays an audio file stored in the ESP32 inte
 
 GoogleTTS_ESP32dev_noPSRAM : demonstrates Google Text-to-Speech via connecttospeech(). Sends a text string to the Google TTS API over HTTPS and plays the MP3 response directly through the I2S amplifier. This example also illustrates the API difference between v2.0.6 and v3.x : the upstream v3.x example uses Audio::msg_t and audio_info_callback, which do not exist in v2.0.6. This fork uses the v2.x weak callback functions (audio_info, audio_eof_speech) instead. The example text is a line from Molière's L'Avare (1668), public domain.
 
+WeatherTTS_ESP32dev_noPSRAM_FR : fetches current weather conditions from the Open-Meteo API (free, no API key required) and reads them aloud in French via Google TTS. Retrieves temperature and WMO weather code, builds a natural language sentence, and speaks it at boot. Includes a TCP probe to translate.google.com:443 between the HTTP weather fetch and the HTTPS TTS request, which is required to let the lwIP stack stabilise between two consecutive network connections. Automatic retry on HTTP failure. Example output : "À Strasbourg, il fait 8 degrés. Ciel couvert." Requires ArduinoJson by Benoit Blanchon.
+
 ## Hardware tested
 
 MCU : ESP32 dev board (no PSRAM), 240 MHz. Amplifier : MAX98357A I2S Class-D module.
