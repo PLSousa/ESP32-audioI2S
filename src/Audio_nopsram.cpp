@@ -1,11 +1,50 @@
 /*
- * Audio.cpp
+ * Audio_nopsram.cpp
  *
- *  Created on: Oct 26.2018
+ * Original file : Audio.cpp
+ *   Created on  : Oct 26.2018
+ *   Version     : 2.0.7
+ *   Updated on  : Mar 16.2026
+ *   Author      : Wolle (schreibfaul1)
  *
- *  Version 2.0.7
- *  Updated on: Nov 22.2022
- *      Author: Wolle (schreibfaul1)
+ * Fork : ESP32-audioI2S v2.0.6 patched for GCC 14 / no PSRAM
+ *   Repository  : github.com/PLSousa/ESP32-audioI2S
+ *   Branch      : v2.0.6-gcc14-nopsram
+ *   Renamed from Audio.cpp to Audio_nopsram.cpp to allow coexistence
+ *   with other versions of ESP32-audioI2S in the same Arduino libraries folder.
+ *
+ * Patches applied to this file :
+ *
+ *   Patch 5 — parseHttpResponseHeader() :
+ *     Increased vTaskDelay from 3 to 5 ticks to give the TCP stack
+ *     slightly more time during HTTP header parsing, reducing the risk
+ *     of incomplete reads on slow connections.
+ *     Backported from v3.2.1.
+ *
+ *   Patch 6 — parseHttpResponseHeader() :
+ *     Fixed an inverted log condition that suppressed the
+ *     "chunked data transfer" info message. The message now appears
+ *     correctly when logging is enabled.
+ *     Backported from v3.2.1.
+ *
+ *   Patch 7 — parseHttpResponseHeader() :
+ *     Fixed the same inverted log condition for the "icy-name"
+ *     metadata field.
+ *     Backported from v3.2.1.
+ *
+ *   Patch 8 — findNextSync() :
+ *     Added a return statement when no MP3 sync word is found within
+ *     the search window, preventing an infinite loop that could occur
+ *     with malformed or unexpected stream data.
+ *     Backported from v3.2.1.
+ *
+ *   Patch 9 — sendBytes() :
+ *     Added handling for ID3 tags injected mid-stream in chunked MP3
+ *     transfers, skipping them cleanly instead of passing them to the
+ *     decoder and causing a decode error.
+ *     Backported from v3.2.1.
+ *
+ * GCC 14 patches (Patches 1–4) are applied in aac_decoder.cpp.
  *
  */
 #include "Audio_nopsram.h"
@@ -3460,7 +3499,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
             }
         } // inner while
 
-        if(!pos){vTaskDelay(5); continue;}
+        if(!pos){vTaskDelay(5); continue;} // Patch 5: vTaskDelay 3→5 ticks (backport v3.2.1)
 
         if(m_f_Log) {log_i("httpResponseHeader: %s", rhl);}
 
@@ -3575,7 +3614,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
             char* c_icyname = (rhl + 9); // Get station name
             trim(c_icyname);
             if(strlen(c_icyname) > 0) {
-                if(m_f_Log) AUDIO_INFO("icy-name: %s", c_icyname);
+                if(m_f_Log) AUDIO_INFO("icy-name: %s", c_icyname); // Patch 7: fixed inverted log condition (backport v3.2.1)
                 if(audio_showstation) audio_showstation(c_icyname);
             }
         }
@@ -3598,7 +3637,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         else if((startsWith(rhl, "transfer-encoding:"))){
             if(endsWith(rhl, "chunked") || endsWith(rhl, "Chunked") ) { // Station provides chunked transfer
                 m_f_chunked = true;
-                AUDIO_INFO("chunked data transfer");
+                AUDIO_INFO("chunked data transfer"); // Patch 6: fixed inverted log condition (backport v3.2.1)
                 m_chunkcount = 0;                         // Expect chunkcount in DATA
             }
         }
@@ -3955,7 +3994,7 @@ int Audio::findNextSync(uint8_t* data, size_t len){
     }
     if(m_codec == CODEC_MP3) {
         nextSync = MP3FindSyncWord(data, len);
-        if(nextSync == -1) return len; // syncword not found, search next block
+        if(nextSync == -1) return len; // Patch 8: return len instead of looping — prevents infinite loop on malformed stream (backport v3.2.1)
     }
     if(m_codec == CODEC_AAC) {
         nextSync = AACFindSyncWord(data, len);
@@ -4035,7 +4074,7 @@ int Audio::sendBytes(uint8_t* data, size_t len) {
         return 1;
     }
     if(ret < 0) { // Error, skip the frame...
-        // B5 backport v3.2.1: skip ID3 tag injected in MP3 chunked stream
+        // Patch 9: skip ID3 tag injected in MP3 chunked stream (backport v3.2.1)
         if((m_codec == CODEC_MP3) && (m_f_chunked == true)) {
             if(specialIndexOf(data, "ID3", 4) == 0) {
                 uint16_t id3Size = bigEndian(data + 6, 4, 7);

@@ -3,7 +3,33 @@
  * libhelix_HAACDECODER
  *
  *  Created on: 26.10.2018
- *  Updated on: 27.05.2022
+ *  Updated on: 16.03.2026
+ *  Original author: Wolle (schreibfaul1)
+ *
+ * Fork : ESP32-audioI2S v2.0.6 patched for GCC 14 / no PSRAM
+ *   Repository  : github.com/PLSousa/ESP32-audioI2S
+ *   Branch      : v2.0.6-gcc14-nopsram
+ *
+ * Patches applied to this file (GCC 14 compatibility) :
+ *
+ *   Patch 2 — UnpackQuads(), UnpackPairsNoEsc(), UnpackPairsEsc(),
+ *              DecodeOneScaleFactor(), DecodeOneSymbol() :
+ *     Changed local variable declaration from 'int val' to 'int32_t val'
+ *     to match the 'int32_t*' pointer type expected by DecodeHuffmanScalar().
+ *     GCC 14 rejects the implicit pointer type mismatch as an error.
+ *
+ *   Patch 3 — Get32BitVal() call site :
+ *     Changed cast from '(uint32_t*)last' to '(unsigned int*)last'
+ *     to resolve a C++ name mangling conflict under GCC 14.
+ *
+ *   Patch 4 — DecodeHuffmanScalar() definition :
+ *     Changed parameter type from 'uint32_t bitBuf' to 'unsigned int bitBuf'
+ *     to align the function definition with its declaration and eliminate
+ *     the resulting linker error under GCC 14.
+ *
+ * Note : Patch 1 (min() type mismatch) is applied in Audio_nopsram.cpp.
+ *        Patches 5–9 (stability backports) are applied in Audio_nopsram.cpp.
+ *
  ************************************************************************************/
 
 #include "aac_decoder.h"
@@ -3280,7 +3306,7 @@ void UnpackZeros(int nVals, int *coef)
 void UnpackQuads(int cb, int nVals, int *coef)
 {
     int w, x, y, z, maxBits, nCodeBits, nSignBits;
-    int32_t val;
+    int32_t val; // Patch 2: int -> int32_t to match int32_t* expected by DecodeHuffmanScalar (GCC 14)
     uint32_t bitBuf;
 
     maxBits = huffTabSpecInfo[cb - HUFFTAB_SPEC_OFFSET].maxBits + 4;
@@ -3328,7 +3354,7 @@ void UnpackQuads(int cb, int nVals, int *coef)
 void UnpackPairsNoEsc(int cb, int nVals, int *coef)
 {
     int y, z, maxBits, nCodeBits, nSignBits;
-    int32_t val;
+    int32_t val; // Patch 2: int -> int32_t to match int32_t* expected by DecodeHuffmanScalar (GCC 14)
     uint32_t bitBuf;
 
     maxBits = huffTabSpecInfo[cb - HUFFTAB_SPEC_OFFSET].maxBits + 2;
@@ -3371,7 +3397,7 @@ void UnpackPairsNoEsc(int cb, int nVals, int *coef)
 void UnpackPairsEsc(int cb, int nVals, int *coef)
 {
     int y, z, maxBits, nCodeBits, nSignBits, n;
-    int32_t val;
+    int32_t val; // Patch 2: int -> int32_t to match int32_t* expected by DecodeHuffmanScalar (GCC 14)
     uint32_t bitBuf;
 
     maxBits = huffTabSpecInfo[cb - HUFFTAB_SPEC_OFFSET].maxBits + 2;
@@ -4175,7 +4201,7 @@ void DecodeSectionData(int winSequence, int numWinGrp, int maxSFB, uint8_t *sfbC
 int DecodeOneScaleFactor()
 {
     int nBits;
-    int32_t val;
+    int32_t val; // Patch 2: int -> int32_t to match int32_t* expected by DecodeHuffmanScalar (GCC 14)
     uint32_t bitBuf;
 
     /* decode next scalefactor from bitstream */
@@ -4492,7 +4518,7 @@ int DecodeNoiselessData(uint8_t **buf, int *bitOffset, int *bitsAvail, int ch)
  *                if there are no codes at nBits, then we just keep << 1 each time
  *                  (since count[nBits] = 0)
  **********************************************************************************************************************/
-int DecodeHuffmanScalar(const signed short *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf, int32_t *val)
+int DecodeHuffmanScalar(const signed short *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf, int32_t *val) // Patch 4: uint32_t bitBuf -> unsigned int bitBuf, aligns definition with declaration (GCC 14)
 {
     uint32_t count, start, shift, t;
     const uint8_t *countPtr;
@@ -5314,7 +5340,7 @@ void GenerateNoiseVector(int *coef, int *last, int nVals)
     int i;
 
     for (i = 0; i < nVals; i++)
-        coef[i] = ((int32_t)Get32BitVal((unsigned int *)last)) >> 16;
+        coef[i] = ((int32_t)Get32BitVal((unsigned int *)last)) >> 16; // Patch 3: (uint32_t*)last -> (unsigned int*)last, C++ name mangling fix (GCC 14)
 }
 
 /***********************************************************************************************************************
@@ -8504,7 +8530,7 @@ void GenerateHighFreq(SBRGrid *sbrGrid, SBRFreq *sbrFreq, SBRChan *sbrChan, int 
  *                if there are no codes at nBits, then we just keep << 1 each time
  *                  (since count[nBits] = 0)
  **********************************************************************************************************************/
-int DecodeHuffmanScalar(const signed int *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf,
+int DecodeHuffmanScalar(const signed int *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf, // Patch 4: uint32_t bitBuf -> unsigned int bitBuf, aligns definition with declaration (GCC 14)
         signed int *val) {
 
     unsigned int count, start, shift, t;
@@ -8544,7 +8570,7 @@ int DecodeHuffmanScalar(const signed int *huffTab, const HuffInfo_t *huffTabInfo
 int DecodeOneSymbol(int huffTabIndex) {
 
     int nBits;
-    int32_t val;
+    int32_t val; // Patch 2: int -> int32_t to match int32_t* expected by DecodeHuffmanScalar (GCC 14)
     unsigned int bitBuf;
     const HuffInfo_t *hi;
 

@@ -1,9 +1,21 @@
 /*
- * Audio.h
+ * Audio_nopsram.h
  *
- *  Created on: Oct 28,2018
- *  Updated on: Nov 22,2022
- *      Author: Wolle (schreibfaul1)
+ * Original file : Audio.h
+ *   Created on  : Oct 28,2018
+ *   Updated on  : Mar 16,2026
+ *   Author      : Wolle (schreibfaul1)
+ *
+ * Fork : ESP32-audioI2S v2.0.6 patched for GCC 14 / no PSRAM
+ *   Repository  : github.com/PLSousa/ESP32-audioI2S
+ *   Branch      : v2.0.6-gcc14-nopsram
+ *   Renamed from Audio.h to Audio_nopsram.h to allow coexistence
+ *   with other versions of ESP32-audioI2S in the same Arduino libraries folder.
+ *
+ * No patches applied to this file.
+ * GCC 14 patches (1–4) are applied in aac_decoder.cpp.
+ * Stability backports (patches 5–9) are applied in Audio_nopsram.cpp.
+ *
  */
 
 //#define SDFATFS_USED  // activate for SdFat

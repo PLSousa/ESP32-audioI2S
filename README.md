@@ -12,7 +12,7 @@ This fork applies 9 targeted patches to make v2.0.6 compile and run correctly wi
 
 ## Patches applied
 
-Patch 1 — Audio.cpp : fixed a min() type mismatch between uint32_t and size_t that GCC 14 rejects as an ambiguous overload.
+Patch 1 — Audio_nopsram.cpp : fixed a min() type mismatch between uint32_t and size_t that GCC 14 rejects as an ambiguous overload.
 
 Patch 2 — aac_decoder.cpp : changed int val to int32_t val in 5 functions (UnpackQuads, UnpackPairsNoEsc, UnpackPairsEsc, DecodeOneScaleFactor, DecodeOneSymbol) to match the int32_t* pointer type expected by DecodeHuffmanScalar.
 
@@ -54,7 +54,7 @@ All examples have been tested and validated on hardware (ESP32 dev board without
 
 WiFi_Radio_ESP32dev_noPSRAM : a complete internet radio sketch. Streams AAC and MP3 stations over WiFi. Includes a TCP probe mechanism to ensure the lwIP stack is fully ready before connecting to the stream, a WiFi watchdog for automatic reconnection, and a pre-fill buffer phase to prevent dropouts on startup.
 
-AudioPlayer_SD_ESP32dev_noPSRAM : plays WAV (16-bit PCM) and MP3 files from a microSD card via SPI. No WiFi required. The audio file is specified by name in the sketch and played once at boot. Includes SD wiring and ffmpeg conversion instructions for WAV files that are not 16-bit PCM.
+AudioPlayer_SD_ESP32dev_noPSRAM : plays WAV (16-bit PCM) and MP3 files from a microSD card via SPI. No WiFi required. The audio file is specified by name in the sketch and played once at boot. Includes SD wiring and ffmpeg conversion instructions for WAV files that are not 16-bit PCM. Note on MAX98357A wiring : the SD/SHUTDOWN pin is left unconnected in the example, which works correctly on genuine Adafruit modules where it defaults to enabled. On some third-party clones this pin defaults to muted when left floating, resulting in complete silence despite the decoder running normally. If you get no audio output at all, wire the SD/SHUTDOWN pin to 3.3V as a first diagnostic step.
 
 FlashAudioPlayer_ESP32dev_noPSRAM : plays an audio file stored in the ESP32 internal flash using LittleFS or SPIFFS. No SD card, no WiFi required. The file is uploaded to the data/ folder via the arduino-littlefs-upload plugin. A #define switches between LittleFS (default) and SPIFFS. The example ships with a short WAV sound effect in the data/ folder so it can be used immediately after cloning. Useful for audio notifications, sound effects, and any application where a small audio clip needs to play without external hardware.
 
@@ -75,6 +75,21 @@ Unlike v3.x, ESP32-audioI2S v2.0.6 supports boards without PSRAM. When no PSRAM 
 v2.0.6 includes decoders for MP3, AAC, AAC+ (HE-AAC), WAV, FLAC, and M4A. VORBIS and OPUS decoders were added in v3.x and are not available in this fork. The original library documents AAC+ on plain ESP32 as mono only, with full stereo (SBR, Parametric Stereo) requiring an ESP32-S3 or ESP32-P4.
 
 The limiting factor for no-PSRAM boards is not the codec itself but the input buffer size. Without PSRAM the buffer is approximately 6 KB, compared to 300 KB with PSRAM. This is sufficient for AAC and MP3 streams at typical internet radio bitrates (96–192 kbps). Higher bitrates or codecs with large frame sizes (FLAC in particular, with blocks up to 24 KB) may cause buffer underruns. Validated codecs on this fork are AAC and MP3. WAV has been tested and works. FLAC and M4A are present in the decoder but have not been tested on no-PSRAM hardware.
+
+## Troubleshooting
+
+**No audio output, decoder appears to start normally (stream ready, syncword found in Serial monitor)**
+
+The SD/SHUTDOWN pin on the MAX98357A may be floating. On genuine Adafruit modules this pin defaults to enabled when unconnected. On some third-party clones it defaults to muted, causing complete silence even though the I2S signal is present and the decoder is running correctly. Wire the SD/SHUTDOWN pin to 3.3V to enable the amplifier unconditionally. The GAIN pin can remain unconnected (defaults to approximately 9 dB when tied to GND, or 15 dB when floating — behaviour varies by board).
+
+**No audio output from a WAV file (decoder reports "BitsPerSample is 24, must be 8 or 16")**
+
+The WAV decoder in v2.0.6 only supports 8-bit and 16-bit PCM. Files encoded in 24-bit or 32-bit will be rejected immediately with no audio output. Convert the file to 16-bit PCM before copying it to the SD card :
+
+```
+ffmpeg -i input.wav -acodec pcm_s16le -ar 44100 -ac 2 output.wav
+```
+
 
 ## Credits
 

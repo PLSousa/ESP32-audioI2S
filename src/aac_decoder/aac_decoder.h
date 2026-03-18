@@ -1,3 +1,17 @@
+/*
+ * aac_decoder.h
+ * libhelix_HAACDECODER
+ *
+ *  Original author: Wolle (schreibfaul1)
+ *
+ * Fork : ESP32-audioI2S v2.0.6 patched for GCC 14 / no PSRAM
+ *   Repository  : github.com/PLSousa/ESP32-audioI2S
+ *   Branch      : v2.0.6-gcc14-nopsram
+ *
+ * No patches applied to this file.
+ * GCC 14 patches (2–4) are applied in aac_decoder.cpp.
+ *
+ */
 // based on helix aac decoder
 #pragma once
 //#pragma GCC optimize ("O3")
