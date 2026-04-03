@@ -68,24 +68,30 @@
  *  IDE       : Arduino IDE 2.x
  *  Board pkg : esp32 by Espressif (v3.x recommended)
  *
- *  Library   : ESP32-audioI2S v2.0.6 — github.com/schreibfaul1
- *              Installed as : ESP32-audioI2S-nopsram
+ *  Library   : ESP32-audioI2S-nopsram v1.0.0 — github.com/PLSousa/ESP32-audioI2S
+ *              Base         : ESP32-audioI2S v2.0.6 by schreibfaul1
  *              Header       : Audio_nopsram.h  (renamed from Audio.h)
- *              Version      : 2.0.6 + patches GCC14 (pinned at 99.0.0)
  *
- *              Patches applied to compile with ESP32 board pkg v3.x
- *              (xtensa-esp-elf GCC 14.2.0) :
- *                1. Audio.cpp       — min() type mismatch (uint32_t vs size_t)
- *                2. aac_decoder.cpp — int val → int32_t val (5 functions)
- *                3. aac_decoder.cpp — (uint32_t*)last → (unsigned int*)last
- *                4. aac_decoder.cpp — DecodeHuffmanScalar: uint32_t bitBuf
- *                                     → unsigned int bitBuf
+ *              This fork applies 9 patches to v2.0.6 :
+ *                Patches 1–4 : GCC 14 compatibility
+ *                  1. Audio_nopsram.cpp — min() type mismatch (uint32_t vs size_t)
+ *                  2. aac_decoder.cpp  — int val → int32_t val (5 functions)
+ *                  3. aac_decoder.cpp  — (uint32_t*)last → (unsigned int*)last
+ *                  4. aac_decoder.cpp  — DecodeHuffmanScalar: uint32_t bitBuf
+ *                                        → unsigned int bitBuf
+ *                Patches 5–9 : stability fixes backported from v3.2.1
+ *                  5. parseHttpResponseHeader() — vTaskDelay 3→5 ticks
+ *                  6. parseHttpResponseHeader() — fixed inverted log condition
+ *                                                 ("chunked data transfer")
+ *                  7. parseHttpResponseHeader() — fixed inverted log condition
+ *                                                 ("icy-name" metadata)
+ *                  8. findNextSync() MP3         — added return on no sync found
+ *                  9. sendBytes()                — added mid-stream ID3 tag handling
  *
- *  ⚠ DO NOT UPDATE this library.
- *    v2.0.6 is the last version supporting boards without PSRAM.
- *    v3.x requires PSRAM and will crash with OOM on this board.
- *    The library is pinned at version=99.0.0 in library.properties
- *    to prevent Arduino IDE from suggesting updates.
+ *  ⚠ DO NOT replace this library with schreibfaul1/ESP32-audioI2S.
+ *    v3.x of the original requires PSRAM and will crash with OOM on this board.
+ *    To receive updates from this fork, download the latest ZIP from :
+ *      https://github.com/PLSousa/ESP32-audioI2S
  *
  *  Arduino IDE board settings (Tools menu):
  *    Board            : ESP32 Dev Module
@@ -100,7 +106,7 @@
 #include "Audio_nopsram.h"  // ESP32-audioI2S-nopsram v2.0.6+GCC14 patches (schreibfaul1)
                             // renamed from Audio.h to avoid conflict with
                             // ESP32-audioI2S-psram (v3.4.4, requires PSRAM)
-                            // ⚠ DO NOT UPDATE — see SOFTWARE section above
+                            // ⚠ DO NOT replace with schreibfaul1/ESP32-audioI2S — see SOFTWARE section above
 #include "WiFi.h"
 #include "HTTPClient.h"
 #include "ArduinoJson.h"    // Install "ArduinoJson" by Benoit Blanchon via Library Manager

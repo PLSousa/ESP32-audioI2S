@@ -1,4 +1,4 @@
-# ESP32-audioI2S — v2.0.6 patched for GCC 14 / no PSRAM
+# ESP32-audioI2S-nopsram
 
 This is a fork of the excellent [ESP32-audioI2S library by schreibfaul1](https://github.com/schreibfaul1/ESP32-audioI2S), maintained here for ESP32 boards without PSRAM.
 
@@ -8,7 +8,7 @@ Starting with v3.0.0, the original library requires PSRAM and allocates a 704 KB
 
 The goal of this fork is to allow makers who own ESP32 boards without PSRAM to keep using them for simple audio projects — internet radio, audio notifications, basic streaming — without having to downgrade their Arduino IDE or their ESP32 board package. These boards are perfectly capable hardware for many practical use cases, and there is no good reason to abandon them just because the upstream library moved on.
 
-This fork applies 9 targeted patches to make v2.0.6 compile and run correctly with ESP32 board package v3.x and GCC 14, and to backport selected stability fixes from v3.2.1. Compatibility has been validated with board package v3.3.7 and Arduino IDE 2.3.8. We will do our best to maintain this compatibility as new versions of the board package are released, but we cannot guarantee it indefinitely — if a future board package version introduces breaking changes that cannot be easily patched, this will be documented here.
+This fork applies 9 targeted patches to make v2.0.6 compile and run correctly with ESP32 board package v3.x and GCC 14, and to backport selected stability fixes from v3.2.1. It is versioned independently from the upstream library, starting at v1.0.0. Compatibility has been validated with board package v3.3.7 and Arduino IDE 2.3.8. We will do our best to maintain this compatibility as new versions of the board package are released, but we cannot guarantee it indefinitely — if a future board package version introduces breaking changes that cannot be easily patched, this will be documented here.
 
 ## Patches applied
 
@@ -38,7 +38,9 @@ To allow coexistence with other versions of ESP32-audioI2S in the same Arduino l
 
 ## Installation
 
-Download or clone this repository and place the folder in your Arduino libraries directory. In Arduino IDE, open your sketch and replace #include "Audio.h" with #include "Audio_nopsram.h". Select your ESP32 dev board with PSRAM disabled and partition scheme set to Huge APP (3MB No OTA / 1MB SPIFFS). Set CPU frequency to 240 MHz for reliable AAC decoding.
+Download or clone this repository and place the folder in your Arduino libraries directory (or use Sketch > Include Library > Add .ZIP Library in Arduino IDE). In your sketch, use #include "Audio_nopsram.h" instead of #include "Audio.h". Select your ESP32 dev board with PSRAM disabled and partition scheme set to Huge APP (3MB No OTA / 1MB SPIFFS). Set CPU frequency to 240 MHz for reliable AAC decoding.
+
+Do not replace this library with schreibfaul1/ESP32-audioI2S via the Arduino IDE Library Manager. The two libraries have different names so the IDE will not confuse them, but installing the upstream v3.x version alongside this fork and changing your #include will break compilation on no-PSRAM boards.
 
 ## Tested environment
 
