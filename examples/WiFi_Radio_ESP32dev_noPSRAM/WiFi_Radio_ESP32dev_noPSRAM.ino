@@ -56,8 +56,8 @@
  *              Coexistence with other versions in Arduino libraries:
  *                - ESP32-audioI2S-nopsram (this fork, v1.0.0)
  *                  → ESP32 dev, no PSRAM
- *                - ESP32-audioI2S-psram  (v3.4.4, schreibfaul1)
- *                  → XIAO ESP32-S3, requires OPI PSRAM
+ *                - ESP32-audioI2S (schreibfaul1 upstream)
+ *                  → boards with PSRAM, requires PSRAM
  *                Renaming Audio.h → Audio_nopsram.h disambiguates #include.
  *
  *  ⚠ DO NOT replace this library with schreibfaul1/ESP32-audioI2S.
@@ -120,7 +120,7 @@
 #include "WiFi.h"
 #include "Audio_nopsram.h"  // ESP32-audioI2S-nopsram v2.0.6+GCC14 patches (schreibfaul1)
                             // renamed from Audio.h to avoid conflict with
-                            // ESP32-audioI2S-psram (v3.4.4, requires PSRAM)
+                            // ESP32-audioI2S (schreibfaul1 upstream, requires PSRAM)
                             // ⚠ DO NOT replace with schreibfaul1/ESP32-audioI2S — see SOFTWARE section above
 #include "esp_system.h"     // esp_reset_reason()
 #include "lwip/sockets.h"   // POSIX socket API (lwIP)
